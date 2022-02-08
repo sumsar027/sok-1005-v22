@@ -1,1 +1,48 @@
 
+library("rjson")
+library(lm)
+library(data.table)
+library(sjPlot)
+library(readr)
+library(zoo)
+library(ggplot2)
+library(dplyr)
+library(gglorenz)
+library(ineq)
+library(tidyr)
+library(tidyverse)
+
+# Oppgave 1
+
+result <- fromJSON(file = "https://static01.nyt.com/newsgraphics/2021/12/20/us-coronavirus-deaths-2021/ff0adde21623e111d8ce103fedecf7ffc7906264/scatter.json")
+
+print(result)
+
+json.dataframe <- rbindlist(result)
+
+json.dataframe.edit <- json.dataframe %>% 
+  select(-"geoid", -"deaths_before", -"deaths")
+
+
+json.dataframe.edit %>%
+  ggplot(aes(x = fully_vaccinated_pct_of_pop, y = deaths_per_100k)) +
+  geom_point() +
+  labs( 
+    title = "Covid-19 deaths",
+    y = "Deaths per 100k",
+    x = "Fully vaccinated percentage of population")
+
+# Oppgave 2
+
+json.plot <- lm(deaths_per_100k ~ fully_vaccinated_pct_of_pop, data = json.dataframe)
+
+print(json.plot)
+
+json.plot %>%
+  ggplot(aes(x = fully_vaccinated_pct_of_pop, y = deaths_per_100k)) +
+  geom_point() +
+  geom_smooth(method = lm) +
+  labs( 
+    title = "Covid-19 deaths",
+    y = "Deaths per 100k",
+    x = "Fully vaccinated percentage of population")
