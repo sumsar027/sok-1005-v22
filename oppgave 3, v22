@@ -1,0 +1,58 @@
+library(tidyverse)
+library(tidyr)
+library(rvest)
+library(dplyr)
+library(janitor)
+library(ggplot2)
+library(scales)
+
+
+
+
+##Oppgave 1 
+
+oppgave1 <- "https://www.motor.no/aktuelt/motors-store-vintertest-av-rekkevidde-pa-elbiler/217132"  %>% 
+  read_html() %>% 
+  html_nodes(xpath = '/html/body/article/section/div[4]/div[4]/div[1]/table') %>%
+  html_table(header= 1, fill = TRUE) %>%
+  as.data.frame() 
+
+oppgave1.edit <- oppgave1 [-c(19, 26), ]
+
+
+
+
+oppgave1.edit <- oppgave1 %>% 
+  filter(!str_detect(Avvik, "x")) %>% 
+  separate(WLTP.tall, sep = "/", into=c("Rekkevidde", "KWH")) %>% 
+  mutate(STOPP = as.numeric(gsub("km", "", STOPP))) %>% 
+  mutate(Rekkevidde = as.numeric(gsub("km", "", Rekkevidde)))
+view (oppgave1)
+
+oppgave1.edit %>% 
+  ggplot(aes(x = Rekkevidde, y = STOPP)) +
+  geom_point() +
+  geom_abline(color = "red3") +
+  labs( 
+    title = "Rekkevidde tapt i kulden",
+    y = "STOPP",
+    x = "WLTP")
+
+#denne grafen viser hvor mye rekkevidde som blir mistet når det er vinter
+
+##Oppgave 2 
+
+oppgave2 <- lm(Rekkevidde ~ STOPP, data = oppgave1.edit)
+
+print(oppgave1.edit)
+
+
+oppgave2 %>%
+  ggplot(aes(x = Rekkevidde, y = STOPP)) +
+  geom_point() +
+  geom_smooth(method = lm) +
+  labs( 
+    title = "",
+    y = "STOPP",
+    x = "WLTP")
+    
