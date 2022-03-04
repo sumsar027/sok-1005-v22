@@ -1,0 +1,53 @@
+
+#Her er pakkene jeg har brukt for koden
+
+library(tidyverse)
+library(rvest)
+library(rlist)
+library(purrr)
+
+
+#Her henter jeg inn alle timeplanene jeg skal bruke i koden, så lager jeg en liste med alle tre
+
+url.1 <-"https://timeplan.uit.no/emne_timeplan.php?sem=22v&module%5B%5D=SOK-1005-1&week=1-20&View=list"
+url.2 <-"https://timeplan.uit.no/emne_timeplan.php?sem=22v&module%5B%5D=SOK-1006-1&week=1-20&View=list"
+url.3 <-"https://timeplan.uit.no/emne_timeplan.php?sem=22v&module%5B%5D=SOK-1016-1&week=1-20&View=list"
+
+url.list <- list(url.1, url.2, url.3)
+
+#Her lager jeg selve koden for oppgaven, hvor jeg skraper og rydder listene
+
+scrp <- function(url) {
+  link <- read_html(url)
+  
+  table <- html_nodes(link, 'table') 
+  table <- html_table(table, fill=TRUE) 
+  
+  dframe <- list.stack(table)
+  
+  colnames(dframe) <- dframe[1,]
+  
+  dframe <- dframe %>% filter(!Dato=="Dato")
+  
+  dframe <- dframe %>% separate(Dato, 
+                                into = c("Dag", "Dato"), 
+                                sep = "(?<=[A-Za-z])(?=[0-9])")
+  
+  dframe$Dato <- as.Date(dframe$Dato, format="%d.%m.%Y")
+  
+  dframe$Uke <- strftime(dframe$Dato, format = "%V")
+  
+  dframe <- dframe %>% select(Dag,Dato,Uke,Tid,Rom,Emnekode,Lærer)
+  
+  return(dframe)
+  
+}
+
+#Prøver å bruke map funksjonen, fjerner ulike na fra timeplanen og binder dem sammen
+
+tp <-  map(url.list,scrp)
+tp <- bind_rows(tp)
+tp <- na.omit(tp)
+
+
+tp
