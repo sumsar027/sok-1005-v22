@@ -1,0 +1,146 @@
+
+
+
+
+# gruppe samarbeid med Rasmus Thorbjørnsen, Mohammed Abdikader.
+# Koden er hentet fra Espen Sirnes.
+    
+    
+
+import pandas as pd
+from matplotlib import pyplot as plt
+import numpy as np
+from statsmodels.regression.linear_model import OLS
+
+
+from bokeh.plotting import figure
+from bokeh.io import show, output_notebook
+from bokeh.plotting import output_file
+
+pd.options.mode.chained_assignment = None
+
+
+
+----
+
+
+
+df = pd.read_csv('https://raw.githubusercontent.com/mab086/git-test/master/natural-resources%20(1).csv?token=GHSAT0AAAAAABRBAXYAH4LEX7JVRQ4S57VSYSVR4RA
+', index_col=0)
+df
+
+
+
+----
+
+
+
+df_filtered = df[df['Entity'].isin(["Norway", "Sweden", "Somalia", "Spain", "Italy", "Zimbabwe", 'Finland', 'Canada'])]
+df_filtered
+
+
+
+----
+
+
+
+df_filtered_2020 = df_filtered[df_filtered["Year"] == 2020]
+df_filtered_2020
+
+
+
+----
+
+
+
+
+continents={'Norway':'Norge', 'Sweden':'Sverige', 'Somalia':'Somalia', 'Spain':'Spania', 'Italy':'Italia', 'Zimbabwe':'Zimbabwe', 'Finland':'Finland', 'Canada' : 'canada'}
+
+
+
+colors={'Norway': '#E14827', 'Sweden': '#84E127', 'Somalia': '#2792E1', 'Spain': '#E04A6C', 'Italy' : '#DEB887', 'Zimbabwe': 'darkgreen', 'Finland' :'purple', 'Canada': '#5F9EA0'}
+
+df_filtered_2020 ['Entity_no'] = df_filtered_2020['Entity'].apply(lambda cont:  continents[cont])
+df_filtered_2020['colors'] = df_filtered_2020['Entity'].apply(lambda cont: colors[cont])
+df_filtered_2020
+
+
+
+----
+
+
+
+df_filtered_2020['size'] = df_filtered_2020['Population'].apply(lambda pop: pop**0.5/300)
+df_filtered_2020
+
+
+
+----
+
+
+
+df_filtered_2020['Oil_production_rnd'] = df_filtered_2020['Oil production'].apply(lambda l: int(l))
+df_filtered_2020['Oil_reserves_per_capita_rnd'] = df_filtered_2020['Oil reserves per capita'].apply(lambda l: int(l))
+df_filtered_2020['pop_mill_str'] = df_filtered_2020['Population'].apply(lambda pop:  '{:,}'.format(int(pop/1000000)))
+df_filtered_2020
+
+
+
+----
+
+
+
+
+p = figure(
+        title = "naturlige ressurser", 
+        x_axis_label = 'Coal exports',
+        y_axis_label = 'cCoal imports',
+    
+        x_axis_type = "log",
+        y_axis_type = "log",
+    
+        tools="hover", 
+        tooltips = [
+            ("Land", "@Entity_no"),
+            ("coal export", "@Coal exports"),
+            ("Befolkning", "@pop_mill_str"),
+            ("coal", "@Coal imports	")
+            ],
+    
+        plot_height = 580,
+        plot_width = 1000)
+        
+        
+        
+----
+
+
+
+p.scatter(
+    source=df_filtered_2020,
+    x= 'coal exports', 
+    y= 'coal imports',
+    
+    size='size', 
+    color= 'colors',
+    legend_field='Entity_no',
+    alpha= 0.8
+    )
+
+
+p.xaxis.major_label_overrides = { 1000: '1k', 10000: '10k', 100000: '100k' }
+p.legend.location = "top_left"
+
+p.legend[0].border_line_alpha=0
+p.outline_line_alpha=0
+p.grid[0].grid_line_alpha=0
+p.grid[1].grid_line_alpha=0
+
+
+output_notebook()
+output_file("natural-resources.html")
+show(p)
+
+
+
+
