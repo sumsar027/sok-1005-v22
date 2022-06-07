@@ -1,0 +1,349 @@
+# Laster inn pakker
+library(tidyverse)
+library(kableExtra)
+library(lubridate)
+library(ggplot2)
+library(hrbrthemes)
+library(dplyr)
+library(tidyr)
+library(viridis)
+
+# Laster ned datasettene (kan hende vi kan droppe)
+
+
+appwichstoreattributes <- read.csv("https://data.mendeley.com/public-files/datasets/6htjnfs78b/files/26afd5e7-90b1-4301-ac5e-5905b38c4ec2/file_downloaded")
+
+county.crime <- read.csv("https://data.mendeley.com/public-files/datasets/6htjnfs78b/files/3691994e-2874-4ee6-b215-12e130c96175/file_downloaded")
+
+county.demographic <- read.csv("https://data.mendeley.com/public-files/datasets/6htjnfs78b/files/527e7486-7233-460a-99e0-3529b7cd7d49/file_downloaded")
+
+county.employment <- read.csv("https://data.mendeley.com/public-files/datasets/6htjnfs78b/files/846ac757-721e-4fd9-a414-5871f60de093/file_downloaded")
+
+weekly.sales.10stores <- read.csv("https://data.mendeley.com/public-files/datasets/6htjnfs78b/files/b963fdd1-0df9-4257-bd62-65256ec9d57c/file_downloaded")
+
+weekly.weather <- read.csv("https://data.mendeley.com/public-files/datasets/6htjnfs78b/files/b8708b3c-c5e8-456e-83f4-9f23f472a840/file_downloaded")
+
+# fikser navn 
+
+county.crime <- county.crime %>% 
+  rename(County_Name = ï..County_Name)
+
+county.employment <- county.employment %>% 
+  rename(County_Name = ï..County_Name)
+
+attributes <- appwichstoreattributes %>% 
+  rename(County_Name = Store_County, Weather_Station = Store_Weather_Station)
+
+weekly.sales.10stores <- weekly.sales.10stores %>% 
+  rename(Store_Num = Store_num)
+
+#fikser på datoer
+
+weekly.weather$Weather_Date <- 
+  as.Date(weekly.weather$Weather_Date, format = "%d/%m/%Y") 
+weekly.weather
+
+#fikser på kolonnene
+
+weekly.sales.10stores <- weekly.sales.10stores %>% 
+  mutate(Date = as.Date(with(weekly.sales.10stores, paste(Year, Month, Day,sep="-")), "%Y-%m-%d"))
+
+weekly.sales.10stores <- 
+  subset(weekly.sales.10stores, select = -c(Year, Month, Day))
+
+weekly.sales.10stores$Description = str_to_title(weekly.sales.10stores$Description)
+
+weekly.sales.10stores
+
+# fikser navn
+
+county.crime <- county.crime %>% 
+  rename(County_Name = ï..County_Name)
+
+county.employment <- county.employment %>% 
+  rename(County_Name = ï..County_Name)
+
+attributes <- appwichstoreattributes %>% 
+  rename(County_Name = Store_County, Weather_Station = Store_Weather_Station)
+
+weekly.sales.10stores <- weekly.sales.10stores %>% 
+  rename(Store_Num = Store_num)
+
+# Oppgave 1
+
+d1.d2 <- left_join(attributes, weekly.weather, by = "Weather_Station")
+d1.d3 <- left_join(d1.d2, county.crime, by = "County_Name")
+d1.d4 <- left_join(d1.d3, county.demographic, by = "County_Name")
+d1.d5 <- left_join(d1.d4, county.employment, by = "County_Name")
+d <- left_join(d1.d5, weekly.sales.10stores, by = c("Store_Num", "Weather_Date" = "Date"))
+
+view(d)
+
+# Oppgave 2
+
+# velger ut to uker som jeg kan bruke til å sammenligne, velger uke 21 og 22.
+
+sn.16 <- d %>% 
+  filter(Store_Num == 16) 
+
+sn.16[1,2] 
+sn.16[1,1]
+
+w.21 <- d %>% 
+  filter(Weather_Week == 21) 
+
+w.21[1,22]
+w.21[1,1]
+
+s.1621 <- d %>% 
+  filter(Weather_Week == 21, Store_Num == 16) %>% 
+  select(Store_Name, Store_Num, Store_City, County_Name, Weather_Date, INV_NUMBER, Description, Price, Sold, Sales, Tot_Sls, Unit_Cost, Cost,Cost_Percent, Margin, Profit) %>% 
+  group_by(Weather_Date, INV_NUMBER, Description, Price, Sold, Cost, Profit, Margin) %>% 
+  summarise(Sales) %>% ungroup()
+
+# her har vi da laget et datasett som skal ha all den nødvendige 
+# informasjonen vi trenger, vi har valgt å gå mer inn på hvilke 
+# varer som selger best, dette er et viktig område å ha stålkontroll i 
+# for å utvikle en suksessful butikk.
+
+s.1621
+
+s.1622 <- d %>% 
+  filter(Weather_Week == 22, Store_Num == 16) %>% 
+  select(Store_Name, Store_Num, Store_City, County_Name, Weather_Date, INV_NUMBER, Description, Price, Sold, Sales, Tot_Sls, Unit_Cost, Cost,Cost_Percent, Margin, Profit) %>% 
+  group_by(Weather_Date, INV_NUMBER, Description, Price, Sold, Cost, Profit, Margin) %>% 
+  summarise(Sales) %>% ungroup()
+
+# her har vi da de samme faktorene men med uken senere, vi kan da sammenligne. 
+
+s.1622
+
+# viser ulike data
+
+sum.s.1621 <- sum(s.1621$Sales)
+sum.s.1622 <- sum(s.1622$Sales)
+sum.p.1621 <- sum(s.1621$Profit)
+sum.p.1622 <- sum(s.1622$Profit)
+sum.pc = round(100 * ((sum(s.1621$Profit)/sum(s.1622$Profit)-1)),1)
+m.1621 <- max(s.1621$Sales)
+m.1622 <- max(s.1622$Sales)
+
+# man kan enkelt hente ut hvilke data du vil se nærmere på, og få en god
+# oversikt over de ulike faktorene 
+
+print(paste("Sum av salg i uke 21 er", sum.s.1621))
+print(paste("Sum av salg i uke 22 er", sum.s.1622))
+print(paste("Sum av profitt i uke 21 er", sum.p.1621))
+print(paste("Sum av profitt i uke 22 er", sum.p.1622))
+print(paste("Sum av profitt endring er", sum.pc))
+print(paste("Høyeste salg i uke 21 er", m.1621))
+print(paste("Høyeste salg i uke 22 er", m.1622))
+
+# dataene blir litt overveldene med et så bredt utvalg av varer
+# vi velger derfor å sortere dataene inn i ulike prisgrupper 
+# sorterer dataene inn i ulike prisgrupper
+
+s.pg.1621 <- s.1621 %>% 
+  group_by(price_group = ifelse(Price <= 1.0, "pu.1", ifelse(Price > 1 & Price <= 2, "p.1", ifelse(Price > 2 & Price <= 3, "p.2", ifelse(Price > 3 & Price <= 4, "p.3", ifelse(Price > 4 & Price <= 5, "p.4", ifelse(Price > 5 & Price <= 6, "p.5", ifelse(Price > 6 & Price <= 7, "p.6", ifelse(Price > 7 & Price <= 8.0, "p.7", "po.8"))))))))) %>% 
+  summarise(Sold, Price, Sales, Profit)
+
+
+s.pg.1621 <-
+  s.pg.1621 %>%
+  select(price_group, Sold, Price, Sales, Profit) %>%
+  filter(price_group >= 0) %>%
+  group_by(price_group) %>%
+  summarise(Tot_sales = sum(Sales), Tot_sold = sum(Sold), Tot_profit = sum(Profit)) 
+
+
+s.pg.1622 <- s.1622 %>% 
+  group_by(price_group = ifelse(Price <= 1.0, "pu.1", ifelse(Price > 1 & Price <= 2, "p.1", ifelse(Price > 2 & Price <= 3, "p.2", ifelse(Price > 3 & Price <= 4, "p.3", ifelse(Price > 4 & Price <= 5, "p.4", ifelse(Price > 5 & Price <= 6, "p.5", ifelse(Price > 6 & Price <= 7, "p.6", ifelse(Price > 7 & Price <= 8.0, "p.7", "po.8"))))))))) %>% 
+  summarise(Sold, Price, Sales, Profit)
+
+
+s.pg.1622 <-
+  s.pg.1622 %>%
+  select(price_group, Sold, Price, Sales, Profit) %>%
+  filter(price_group >= 0) %>%
+  group_by(price_group) %>%
+  summarise(Tot_sales = sum(Sales), Tot_sold = sum(Sold), Tot_profit = sum(Profit)) 
+
+# dette gir oss et enklere overblikk over økonomien til de ulike prisgruppene 
+# vi kan nå se dataene for begge ukene sortert
+
+s.pg.1621
+s.pg.1622
+
+# viser ulik data
+
+t.s.1621 <- sum(s.pg.1621$Tot_sales)
+t.s.1622 <- max(s.pg.1622$Tot_sales)
+s.tp.1621 <- sum(s.pg.1621$Tot_profit)
+s.tp.1622 <- sum(s.pg.1622$Tot_profit)
+
+# igjen, det er enkelt å finne frem til ulike faktorer
+
+print(paste("Sum av totalt salg i uke 21 er", t.s.1621))
+print(paste("Sum av totalt salg i uke 22 er", t.s.1622))
+print(paste("Sum av total profitt i uke 21 er", s.tp.1621))
+print(paste("Sum av total profitt i uke 22 er", s.tp.1622))
+
+# lager ulike grafer for å vise dataene i et annet perspektiv 
+
+g.1 <-
+  s.pg.1621 %>% 
+  ggplot(aes(x=price_group, y = Tot_sales))+
+  geom_bar(stat= "identity", fill = "darkgreen") +
+  geom_text(aes(label=Tot_sales), vjust= -0.5, size = 3)+
+  labs(title = "Salg i ulike prisgrupper", x = "Prisgrupper $", y = "Salg") +
+  theme_gray()
+
+
+g.2 <-
+  s.pg.1622 %>% 
+  ggplot(aes(x=price_group, y = Tot_sales))+
+  geom_bar(stat= "identity", fill = "darkgreen") +
+  geom_text(aes(label=Tot_sales), vjust= -0.5, size = 3)+
+  labs(title = "Salg i ulike prisgrupper", x = "Prisgrupper $", y = "Salg") +
+  theme_gray()
+
+g.1
+g.2
+
+# her kan vi for eksempel se at det er mest salg i prisgruppe "p.4", $ 3-4 $
+# vi kan også se et minus i salg i prisgruppe "pu.1", $ >1 $
+# vi har tatt med disse dataene siden de gir en svært god oversikt over 
+# hva som går bra og hva som går dårlig, har sortert dem etter prisgrupper 
+# siden det ble for mange enkeltvarer. 
+# vi kan også sammenligne disse to ukene for å få ende mer informasjon om 
+# hva som vanligvis går bedre og hva som går dårligere. 
+# et histogram er perfekt for å vise disse dataene!
+
+c.1621 <- d %>% 
+  filter(Weather_Week == 21, Store_Num == 16) %>% 
+  select(Store_Name, Store_Num, Store_City, County_Name, Weather_Date, INV_NUMBER, Description, Price, Sold, Sales, Tot_Sls, Unit_Cost, Cost,Cost_Percent, Margin, Profit, County_Total_Crime_Rate) %>% 
+  group_by(Weather_Date, INV_NUMBER, Description, Price, Sold, Cost, Profit, Margin, County_Total_Crime_Rate) %>% 
+  summarise(Sales) %>% ungroup()
+
+c.1622 <- d %>% 
+  filter(Weather_Week == 22, Store_Num == 16) %>% 
+  select(Store_Name, Store_Num, Store_City, County_Name, Weather_Date, INV_NUMBER, Description, Price, Sold, Sales, Tot_Sls, Unit_Cost, Cost,Cost_Percent, Margin, Profit, County_Total_Crime_Rate) %>% 
+  group_by(Weather_Date, INV_NUMBER, Description, Price, Sold, Cost, Profit, Margin, County_Total_Crime_Rate) %>% 
+  summarise(Sales) %>% ungroup()
+
+# her har vi da to datasetts som gir oss god oversikt over alle de nødvendige
+# variablene som "Price", "Sold", "Cost" og "Profit", dette igjen gir en god
+# oversikt over alle de ulike økonomiske faktorene som gjør det enkelt å finne det 
+# man er ute etter. Man kan enkelt adde og fjerne ulike faktorer inn i dette datasettet
+# som kriminalitet.
+
+c.1621
+c.1622
+
+# Oppgave 3
+
+# endrer på ulike rader og kolonner for å få et penere datasett å jobbe med
+# lager prosent ut av populasjonsgrupper, dette gjør det enkelt for hvem som helst
+# å se på ulike faktorer som populasjon, vær, salg. 
+
+d.2 <- d %>% 
+  mutate("All_Other_Groups"= rowSums( d[ , c("County_Non.Hispanic_Black","County_Non.Hispanic_Asian","County_Non.Hispanic_Pacific_Islander", "County_Non.Hispanic_Two_or_more", "County_Hispanic_Black", "County_Hispanic_Asian", "County_Hispanic_Pacific_Islander", "County_Hispanic_Two_or_more")])) %>%  
+  select(Store_Name, Store_Num, Store_City, County_Name, Weather_Station, Weather_Date, Weather_Week,    
+         Description, Price, Sold,Sales, Tot_Sls, Cost, Margin, Profit, Annual_Rent_Estimate,Store_Location, Store_Drive_Through, 
+         Store_Competition_Fastfood, Weather_Bad_Weather_days, County_Total_Crime_Rate, County_Violent_Rate, 
+         County_Property_Rate, County_Society_Rate, County_Unemployment_Rate, `County_Non.Hispanic_White`,
+         `County_Non.Hispanic_Native_American`, County_Hispanic_White,  County_Hispanic_Native_American, All_Other_Groups, 
+         County_Total_Census_Pop, ) %>% 
+  mutate(All_Other_Groups_pct = round(100 * (All_Other_Groups/County_Total_Census_Pop),1),
+         `County_Non.Hispanic_White_pct` = round(100 * (`County_Non.Hispanic_White`/County_Total_Census_Pop),1),
+         `County_Non.Hispanic_Native_American_pct` = round(100 * (`County_Non.Hispanic_Native_American`/`County_Total_Census_Pop`),1),
+         `County_Hispanic_White_pct` = round(100 * (`County_Hispanic_White`/County_Total_Census_Pop),1),
+         `County_Hispanic_Native_American_pct` = round(100 * (`County_Hispanic_Native_American`/County_Total_Census_Pop),1)
+  ) %>% 
+  select(- c(`County_Non.Hispanic_White`,
+             `County_Non.Hispanic_Native_American`, County_Hispanic_White,  County_Hispanic_Native_American, All_Other_Groups, 
+             County_Total_Census_Pop)) 
+
+# her har vi da et datasett med alle de nødvendige faktorene vi trenger, også crime, population og vær 
+# dette gjør det enkelt å gå videre og mer spesefikt inn på et tema, man får også en fin og
+# god oversikt over alle faktorene. Vi velger å se nærmere på faktoren om varer, salg og profitt. 
+
+d.2
+
+
+# jeg velger 3 uker fra uke 21 til 23
+
+s.2123 <- d.2 %>% 
+  filter(Weather_Week >= 21, Weather_Week <= 23) %>% 
+  select(Store_Name, Store_Num, Store_City, County_Name, Weather_Date,Description, Price, Sold, 
+         Sales, Profit) %>% 
+  group_by(Weather_Date, Description, Price, Sold, Sales, Profit) %>% 
+  summarise(Sales, Sold) %>% 
+  ungroup()
+s.2123
+
+# sum av de ulike variablene
+
+sum.salg <- round(sum(s.2123$Sales),0)
+sum.profit <- round(sum(s.2123$Profit),0)
+
+# Nå kan vi hente ut ulike faktorer og regne dem ut som vi vil, dette kan man gjøre med
+# akuratt de variablene du vil ha! Som for eksempel summen av salg og profitt
+
+sum.salg
+sum.profit
+
+# lager ulike prisgrupper av alle salg
+# dette gjør vi for å få et enda enklere datasett å jobbe med
+
+s.pg.2123 <- s.2123 %>% 
+  group_by(price_group = ifelse(Price <= 1.0, "p.1", ifelse(Price > 1 & Price <= 2, "p.2", ifelse(Price > 2 & Price <= 3, "p.3", ifelse(Price > 3 & Price <= 4, "p.4", ifelse(Price > 4 & Price <= 5, "p.5", ifelse(Price > 5 & Price <= 6, "p.6", ifelse(Price > 6 & Price <= 7, "p.7", ifelse(Price > 7 & Price <= 8.0, "p.8", "po.8"))))))))) %>% 
+  summarise(Description, Sold, Price, Sales, Profit)
+s.pg.2123
+
+# sum prisgrupper
+s.pg.2123.1 <-
+  s.pg.2123 %>%
+  select(price_group,Description, Sold, Price, Sales, Profit) %>%
+  filter(price_group >= 0) %>%
+  group_by(price_group) %>%
+  summarise(Tot_sales = sum(Sales), Tot_sold = sum(Sold), Tot_profit = sum(Profit)) 
+
+# her har vi delt inn alle varegruppene in i de ulike prisgruppene, samtidig har vi
+# lagd nye og viktige kolonner i datasettet, vi har valgt totalt salg, totalt solgt 
+# og total profitt. Dette gir en god oversikt over de ulike prisgruppene. 
+
+s.pg.2123.1
+
+# regner ut ulike faktorer
+# og henter ut de viktige vi trenger
+# som salg og profitt
+
+round(sum(s.pg.2123.1$Tot_sales),0)
+round(max(s.pg.2123.1$Tot_sales),0) 
+
+round(sum(s.pg.2123.1$Tot_profit),0)
+round(max(s.pg.2123.1$Tot_profit),0) 
+
+# lager enda en graf, igjen er histogram det som passer best inn her
+# vi får en god oversikt og det er enkelt å finne frem til ulike faktorer
+# man vil se på, dette er kritisk for senere utvikling
+
+g.1.1 <-
+  s.pg.2123.1 %>% 
+  ggplot(aes(x=price_group, y = Tot_profit))+
+  geom_bar(stat= "identity", fill = "darkgreen") +
+  geom_text(aes(label=Tot_sales), vjust= -0.5, size = 3)+
+  labs(title = "Profit i ulike prisgrupper", x = "Prisgrupper $", y = "Profit") +
+  theme_gray()
+g.1.1
+
+
+# Oppgave 4
+
+# disse dataene har allerede plassering og påvirkninger fra ulike faktorer inni,
+# dette gjør at man enkelt kan finne frem til det beste for et nytt utsalg, ulike 
+# faktorer som kriminalitet, vær, type populasjon og hvilke varer som selger best, 
+# det er den siste faktoren som vi har lagt mest vekt på i denne oppgaven. Dataene 
+# vi har funnet frem kan bli brukt til å finne ut hva man burde selge i det nye 
+# utsalget. 
